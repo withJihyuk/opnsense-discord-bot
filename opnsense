@@ -1,0 +1,67 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+import time
+import config
+
+def AddRule(internal_ip, outport, inport, description=""):
+    if (int(outport) >= 1) and (int(outport) <= 65535):
+        if (int(inport) >= 1) and (int(inport) <= 65535):
+            options = webdriver.ChromeOptions()
+            options.add_argument('headless') # headless 모드 설정
+            options.add_argument("window-size=1920x1080") # 화면크기(전체화면)
+            options.add_argument("log-level=3")
+            options.add_argument("disable-gpu") 
+            options.add_argument("disable-infobars")
+            options.add_argument("--disable-extensions")
+            options.add_argument("--ignore-certificate-error")
+            options.add_argument("--ignore-ssl-errors")
+            options.add_argument("--remote-allow-origins=*")
+
+            caps = webdriver.DesiredCapabilities.CHROME.copy()
+            caps['acceptInsecureCerts'] = True
+            caps['acceptSslCerts'] = True
+            driver = webdriver.Chrome(desired_capabilities=caps,options=options)
+
+            url = f"{config.opnsense_url}"
+            driver.get(url)
+
+            driver.find_element(By.XPATH, '//*[@id="usernamefld"]').send_keys(config.username)
+            driver.find_element(By.XPATH, '//*[@id="passwordfld"]').send_keys(config.password)
+            driver.find_element(By.XPATH, '//*[@id="iform"]/button').click()
+
+            url = f"{config.opnsense_url}/firewall_nat.php"
+            driver.get(url)
+
+            driver.find_element(By.XPATH, '//*[@id="iform"]/div/table/thead/tr[2]/th[13]/a').click() # add 누르기
+            driver.find_element(By.XPATH, '//*[@id="iform"]/table/tbody/tr[24]/td[2]/table/tbody/tr[1]/td/div/button/div').click()
+            driver.find_element(By.XPATH, '//*[@id="iform"]/table/tbody/tr[24]/td[2]/table/tbody/tr[1]/td/div/div/div[2]/ul/li[16]/a').click()
+
+            driver.find_element(By.XPATH, '//*[@id="iform"]/table/tbody/tr[26]/td[2]/table/tbody/tr[1]/td[1]/div/button/div').click() #외부타입선택 (HTTP)
+            driver.find_element(By.XPATH, '//*[@id="iform"]/table/tbody/tr[26]/td[2]/table/tbody/tr[1]/td[1]/div/div/div[2]/ul/li[1]').click() #(other)
+
+            driver.find_element(By.XPATH, '//*[@id="iform"]/table/tbody/tr[26]/td[2]/table/tbody/tr[2]/td[1]/input').clear() #외부
+            driver.find_element(By.XPATH, '//*[@id="iform"]/table/tbody/tr[26]/td[2]/table/tbody/tr[2]/td[1]/input').send_keys(f'{outport}') #외부지정1
+
+            driver.find_element(By.XPATH, '//*[@id="iform"]/table/tbody/tr[26]/td[2]/table/tbody/tr[2]/td[2]/input').clear() #외부지정2
+            driver.find_element(By.XPATH, '//*[@id="iform"]/table/tbody/tr[26]/td[2]/table/tbody/tr[2]/td[2]/input').send_keys(f'{outport}') #외부지정2
+
+            driver.find_element(By.XPATH, '//*[@id="iform"]/table/tbody/tr[30]/td[2]/table/tbody/tr[2]/td/input').clear() #내부
+            driver.find_element(By.XPATH, '//*[@id="iform"]/table/tbody/tr[30]/td[2]/table/tbody/tr[2]/td/input').send_keys(f'{inport}') #내부지정2
+
+            driver.find_element(By.XPATH, '//*[@id="target_address"]').clear() #내부아이피
+            driver.find_element(By.XPATH, '//*[@id="target_address"]').send_keys(f'{internal_ip}') #내부아이피
+            driver.find_element(By.XPATH, '//*[@id="descr"]').clear() #내부
+            driver.find_element(By.XPATH, '//*[@id="descr"]').send_keys(f'{description}') #내부
+
+            time.sleep(1)
+            save_btn = driver.find_element(By.NAME, "Submit")
+            driver.execute_script("arguments[0].click();", save_btn)
+
+            time.sleep(5)
+            driver.find_element(By.XPATH, '//*[@id="apply"]').click() #적용
+
+            return {"ip": internal_ip, "outport": outport, "inport": inport, "description": description, "result": 200}
+        else:
+            return {"result": 404}
+    else:
+        return {"result": 404}
