@@ -4,3 +4,5 @@
 
 ## features
 * Manage OPNsense rule in discord bot
+
+At the time, I didn't know how to use the API, so I used selenium, but it would be better if I used the API :(
